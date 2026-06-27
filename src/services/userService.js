@@ -1,91 +1,82 @@
 import { db } from '../firebase';
-import {
-  collection,
-  doc,
-  addDoc,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
-  query,
-  where
-} from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 
 const usersCollection = collection(db, 'users');
 
 /**
  * Crea un nuevo usuario en Firestore
- * @param {Object} userData - Datos del usuario
- * @returns {Promise<string>} - ID del documento creado
+ * @param {string} uid - ID del usuario (de Firebase Auth)
+ * @param {Object} userData - Datos del usuario {email, role, name, enrolledCourses, createdAt}
  */
-export const createUser = async (userData) => {
+export const createUser = async (uid, userData) => {
   try {
-    const docRef = await addDoc(usersCollection, {
+    await setDoc(doc(usersCollection, uid), {
       ...userData,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
-    return docRef.id;
+    return { success: true, message: 'Usuario creado exitosamente' };
   } catch (error) {
     console.error('Error creando usuario:', error);
-    throw error;
+    return { success: false, message: error.message };
   }
 };
 
 /**
- * Obtiene un usuario por su ID
- * @param {string} userId - ID del usuario
- * @returns {Promise<Object|null>} - Datos del usuario o null
+ * Obtiene los datos de un usuario por su UID
+ * @param {string} uid - ID del usuario
  */
-export const getUser = async (userId) => {
+export const getUser = async (uid) => {
   try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (userDoc.exists()) {
-      return { id: userDoc.id, ...userDoc.data() };
+    const docRef = doc(usersCollection, uid);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return { success: true, data: docSnap.data() };
+    } else {
+      return { success: false, message: 'Usuario no encontrado' };
     }
-    return null;
   } catch (error) {
     console.error('Error obteniendo usuario:', error);
-    throw error;
+    return { success: false, message: error.message };
   }
 };
 
 /**
  * Actualiza los datos de un usuario
- * @param {string} userId - ID del usuario
- * @param {Object} userData - Datos a actualizar
- * @returns {Promise<void>}
+ * @param {string} uid - ID del usuario
+ * @param {Object} updatedData - Datos a actualizar
  */
-export const updateUser = async (userId, userData) => {
+export const updateUser = async (uid, updatedData) => {
   try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      ...userData,
+    const docRef = doc(usersCollection, uid);
+    await updateDoc(docRef, {
+      ...updatedData,
       updatedAt: new Date().toISOString()
     });
+    return { success: true, message: 'Usuario actualizado exitosamente' };
   } catch (error) {
     console.error('Error actualizando usuario:', error);
-    throw error;
+    return { success: false, message: error.message };
   }
 };
 
 /**
- * Elimina un usuario
- * @param {string} userId - ID del usuario
- * @returns {Promise<void>}
+ * Elimina un usuario de Firestore
+ * @param {string} uid - ID del usuario
  */
-export const deleteUser = async (userId) => {
+export const deleteUser = async (uid) => {
   try {
-    await deleteDoc(doc(db, 'users', userId));
+    await deleteDoc(doc(usersCollection, uid));
+    return { success: true, message: 'Usuario eliminado exitosamente' };
   } catch (error) {
     console.error('Error eliminando usuario:', error);
-    throw error;
+    return { success: false, message: error.message };
   }
 };
 
 /**
  * Obtiene todos los usuarios
- * @returns {Promise<Array>} - Lista de usuarios
  */
 export const getAllUsers = async () => {
   try {
@@ -94,17 +85,16 @@ export const getAllUsers = async () => {
     querySnapshot.forEach((doc) => {
       users.push({ id: doc.id, ...doc.data() });
     });
-    return users;
+    return { success: true, data: users };
   } catch (error) {
-    console.error('Error obteniendo todos los usuarios:', error);
-    throw error;
+    console.error('Error obteniendo usuarios:', error);
+    return { success: false, message: error.message };
   }
 };
 
 /**
- * Obtiene usuarios por rol
- * @param {string} role - Rol del usuario ('admin' o 'student')
- * @returns {Promise<Array>} - Lista de usuarios filtrados
+ * Obtiene usuarios por rol (admin o student)
+ * @param {string} role - Rol del usuario
  */
 export const getUsersByRole = async (role) => {
   try {
@@ -114,29 +104,30 @@ export const getUsersByRole = async (role) => {
     querySnapshot.forEach((doc) => {
       users.push({ id: doc.id, ...doc.data() });
     });
-    return users;
+    return { success: true, data: users };
   } catch (error) {
     console.error('Error obteniendo usuarios por rol:', error);
-    throw error;
+    return { success: false, message: error.message };
   }
 };
 
 /**
- * Obtiene usuario por email
+ * Obtiene un usuario por su email
  * @param {string} email - Email del usuario
- * @returns {Promise<Object|null>} - Datos del usuario o null
  */
 export const getUserByEmail = async (email) => {
   try {
     const q = query(usersCollection, where('email', '==', email));
     const querySnapshot = await getDocs(q);
+    
     if (!querySnapshot.empty) {
       const doc = querySnapshot.docs[0];
-      return { id: doc.id, ...doc.data() };
+      return { success: true, data: { id: doc.id, ...doc.data() } };
+    } else {
+      return { success: false, message: 'Usuario no encontrado' };
     }
-    return null;
   } catch (error) {
     console.error('Error obteniendo usuario por email:', error);
-    throw error;
+    return { success: false, message: error.message };
   }
 };
