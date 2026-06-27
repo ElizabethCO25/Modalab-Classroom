@@ -1,0 +1,74 @@
+# Firestore - Reglas de seguridad para ModaLAB Escuela
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Función auxiliar para verificar si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Función para verificar si el usuario es administrador
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Función para verificar si el usuario es alumno
+    function isStudent() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student';
+    }
+    
+    // Función para verificar si el usuario es dueño del documento
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Colección de usuarios
+    match /users/{userId} {
+      // Los usuarios pueden leer su propio perfil
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      // Solo los administradores pueden crear/editar/eliminar usuarios
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Colección de cursos
+    match /courses/{courseId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+      
+      // Subcolección de tareas dentro de cursos
+      match /assignments/{assignmentId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isAdmin();
+        
+        // Subcolección de entregas dentro de tareas
+        match /submissions/{submissionId} {
+          allow read: if isAuthenticated() && (isAdmin() || isOwner(resource.data.studentId));
+          allow create: if isAuthenticated() && isOwner(request.resource.data.studentId);
+          allow update, delete: if isAuthenticated() && (isAdmin() || isOwner(resource.data.studentId));
+        }
+      }
+      
+      // Subcolección de materiales dentro de cursos
+      match /materials/{materialId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isAdmin();
+      }
+    }
+    
+    // Colección de configuraciones de la escuela
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Colección de notificaciones
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
