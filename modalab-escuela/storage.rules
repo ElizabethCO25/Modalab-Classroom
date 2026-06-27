@@ -1,0 +1,62 @@
+// Reglas de seguridad para Firebase Storage - ModaLAB Escuela
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Función auxiliar para verificar si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Función para verificar si el usuario es administrador
+    function isAdmin() {
+      return request.auth != null && 
+             request.auth.token.admin == true;
+    }
+    
+    // Carpeta para materiales de cursos (PDFs, imágenes, videos)
+    match /materials/{courseId}/{fileName} {
+      // Los usuarios autenticados pueden leer materiales
+      allow read: if isAuthenticated();
+      // Solo administradores pueden subir/editar/eliminar materiales
+      allow write: if isAdmin();
+    }
+    
+    // Carpeta para entregas de tareas de alumnos
+    match /submissions/{assignmentId}/{userId}/{fileName} {
+      // Los alumnos pueden subir sus propias entregas
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+      // Los alumnos y administradores pueden leer las entregas
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Carpeta para logos y configuración de la escuela
+    match /settings/{fileName} {
+      allow read: if true; // Público para que se pueda mostrar el logo
+      allow write: if isAdmin();
+    }
+    
+    // Carpeta para avatares de usuarios
+    match /avatars/{userId}/{fileName} {
+      allow read: if true; // Público
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Validación de tipos de archivo permitidos
+    function isValidFileType() {
+      return request.resource.contentType.matches('image/.*') ||
+             request.resource.contentType.matches('video/.*') ||
+             request.resource.contentType == 'application/pdf' ||
+             request.resource.contentType == 'application/msword' ||
+             request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    }
+    
+    // Regla general con validación de tipo de archivo
+    match /{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidFileType() 
+                   && request.resource.size < 50 * 1024 * 1024; // Máximo 50MB
+    }
+  }
+}
