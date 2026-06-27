@@ -1,121 +1,81 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react';
 import { 
-  onAuthStateChanged, 
   signInWithEmailAndPassword, 
-  signOut,
-  createUserWithEmailAndPassword 
-} from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
-import { auth, db } from '../firebase'
+  signOut, 
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
-// Crear contexto de autenticación
-const AuthContext = createContext()
+const AuthContext = createContext();
 
-// Hook personalizado para usar el contexto
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider')
-  }
-  return context
+export function useAuth() {
+  return useContext(AuthContext);
 }
 
-// Proveedor del contexto
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [userRole, setUserRole] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Función para iniciar sesión
-  async function login(email, password) {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      const user = userCredential.user
-      
-      // Obtener el rol del usuario desde Firestore
-      const userDoc = await getDoc(doc(db, 'users', user.uid))
-      if (userDoc.exists()) {
-        setUserRole(userDoc.data().role)
-      } else {
-        setUserRole('student') // Rol por defecto
-      }
-      
-      return user
-    } catch (error) {
-      console.error('Error al iniciar sesión:', error)
-      throw error
-    }
+  function login(email, password) {
+    console.log('🔐 Intentando login con:', email);
+    return signInWithEmailAndPassword(auth, email, password);
   }
 
-  // Función para registrar usuario
-  async function signup(email, password, role = 'student') {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      const user = userCredential.user
-      
-      // Crear documento del usuario en Firestore
-      // Nota: Esto debería hacerse en el backend o con reglas de seguridad apropiadas
-      // Aquí es solo un ejemplo básico
-      
-      return user
-    } catch (error) {
-      console.error('Error al registrar usuario:', error)
-      throw error
-    }
+  function logout() {
+    return signOut(auth);
   }
 
-  // Función para cerrar sesión
-  async function logout() {
-    try {
-      await signOut(auth)
-      setUserRole(null)
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error)
-      throw error
-    }
-  }
-
-  // Escuchar cambios en el estado de autenticación
   useEffect(() => {
+    console.log('🔄 Configurando listener de autenticación...');
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user)
+      console.log('👤 onAuthStateChanged ejecutado. Usuario:', user ? user.email : 'null');
       
       if (user) {
-        // Obtener el rol del usuario desde Firestore
+        console.log('✅ Usuario autenticado - UID:', user.uid);
+        setCurrentUser(user);
+        
         try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid))
+          console.log('🔍 Buscando documento en Firestore para UID:', user.uid);
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          
           if (userDoc.exists()) {
-            setUserRole(userDoc.data().role)
+            const data = userDoc.data();
+            console.log('✅ Documento encontrado en Firestore:', data);
+            setUserData(data);
           } else {
-            setUserRole('student')
+            console.error('❌ NO se encontró documento en Firestore para UID:', user.uid);
+            setUserData({ role: 'student', email: user.email, name: 'Usuario' });
           }
         } catch (error) {
-          console.error('Error al obtener rol del usuario:', error)
-          setUserRole('student')
+          console.error('❌ Error al obtener documento de Firestore:', error);
+          setUserData({ role: 'student', email: user.email, name: 'Usuario' });
         }
       } else {
-        setUserRole(null)
+        console.log('⚠️ No hay usuario autenticado');
+        setCurrentUser(null);
+        setUserData(null);
       }
       
-      setLoading(false)
-    })
+      setLoading(false);
+    });
 
-    return unsubscribe
-  }, [])
+    return unsubscribe;
+  }, []);
 
-  // Valor del contexto
   const value = {
     currentUser,
-    userRole,
+    userData,
     login,
-    signup,
     logout,
     loading
-  }
+  };
 
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}
     </AuthContext.Provider>
-  )
+  );
 }
