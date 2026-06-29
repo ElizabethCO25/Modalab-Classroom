@@ -5,7 +5,7 @@ import {
   onAuthStateChanged 
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { auth, db } from '../firebase'; // Asegúrate que esta ruta sea correcta
 
 const AuthContext = createContext();
 
@@ -46,7 +46,8 @@ export function AuthProvider({ children }) {
             console.log('✅ Documento encontrado en Firestore:', data);
             setUserData(data);
           } else {
-            console.error('❌ NO se encontró documento en Firestore para UID:', user.uid);
+            console.warn('⚠️ No se encontró documento en Firestore, usando valores por defecto');
+            // Fallback si no existe el documento en Firestore
             setUserData({ role: 'student', email: user.email, name: 'Usuario' });
           }
         } catch (error) {
@@ -68,6 +69,8 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     userData,
+    // AGREGAMOS ESTA LÍNEA: Extraemos el rol directamente para facilitar su uso
+    userRole: userData?.role, 
     login,
     logout,
     loading

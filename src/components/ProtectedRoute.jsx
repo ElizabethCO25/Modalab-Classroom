@@ -1,10 +1,8 @@
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-
+// ... imports
 function ProtectedRoute({ children, requiredRole }) {
-  const { currentUser, userRole, loading } = useAuth()
+  // Ahora sí recibirá 'userRole' gracias al cambio en AuthContext
+  const { currentUser, userRole, loading } = useAuth() 
 
-  // Mostrar estado de carga mientras se verifica la autenticación
   if (loading) {
     return (
       <div className="loading">
@@ -14,14 +12,12 @@ function ProtectedRoute({ children, requiredRole }) {
     )
   }
 
-  // Redirigir al login si no hay usuario autenticado
   if (!currentUser) {
     return <Navigate to="/login" replace />
   }
 
-  // Verificar el rol requerido
+  // Esta comparación ahora funcionará porque userRole tendrá el valor de Firestore
   if (requiredRole && userRole !== requiredRole) {
-    // Redirigir según el rol del usuario
     if (userRole === 'admin') {
       return <Navigate to="/admin" replace />
     } else if (userRole === 'student') {
@@ -30,8 +26,5 @@ function ProtectedRoute({ children, requiredRole }) {
     return <Navigate to="/login" replace />
   }
 
-  // Renderizar el componente protegido
   return children
 }
-
-export default ProtectedRoute
