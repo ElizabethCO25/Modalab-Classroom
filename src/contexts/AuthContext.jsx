@@ -66,11 +66,10 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  const value = {
+const value = {
     currentUser,
     userData,
-    // AGREGAMOS ESTA LÍNEA: Extraemos el rol directamente para facilitar su uso
-    userRole: userData?.role, 
+    userRole: userData?.role, // <--- AGREGA ESTA LÍNEA EXPLÍCITA
     login,
     logout,
     loading
