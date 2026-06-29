@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { db, storage } from '../firebase'
 import { collection, getDocs, query, where } from 'firebase/firestore'
-import { ref, downloadURL } from 'firebase/storage'
+import { ref, getDownloadURL } from 'firebase/storage'
 
 function StudentDashboard() {
   const { currentUser, logout, userRole } = useAuth()
