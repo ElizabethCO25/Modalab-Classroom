@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import './Login.css'
 
@@ -9,7 +8,6 @@ function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
-  const navigate = useNavigate()
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -22,10 +20,12 @@ function Login() {
     try {
       setError('')
       setLoading(true)
+      // Al hacer login exitoso, onAuthStateChanged se activará
+      // y ProtectedRoute se encargará de la redirección correcta
       await login(email, password)
-      // La redirección se maneja automáticamente por ProtectedRoute
-      // pero podemos forzar una navegación después del login exitoso
-      navigate('/')
+      
+      // NOTA: Se eliminó navigate('/') para evitar conflictos con HashRouter
+      // La redirección ocurre automáticamente gracias al contexto y ProtectedRoute
     } catch (err) {
       setError('Error al iniciar sesión. Verifica tus credenciales.')
       console.error('Login error:', err)
@@ -33,6 +33,7 @@ function Login() {
       setLoading(false)
     }
   }
+  
 
   return (
     <div className="login-container">
@@ -55,6 +56,7 @@ function Login() {
               placeholder="tu@correo.com"
               disabled={loading}
               required
+              autoComplete="username"
             />
           </div>
 
@@ -68,6 +70,7 @@ function Login() {
               placeholder="••••••••"
               disabled={loading}
               required
+              autoComplete="current-password"
             />
           </div>
 
