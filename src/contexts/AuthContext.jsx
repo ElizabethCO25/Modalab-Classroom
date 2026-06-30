@@ -31,6 +31,8 @@ export function AuthProvider({ children }) {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
+      console.log('✅ Usuario Auth creado, UID:', user.uid);
+      
       // Crear documento en Firestore con los datos del usuario
       await setDoc(doc(db, 'users', user.uid), {
         email: email,
@@ -39,7 +41,15 @@ export function AuthProvider({ children }) {
         createdAt: new Date().toISOString()
       });
       
-      console.log('✅ Usuario registrado y documento creado en Firestore');
+      console.log('✅ Documento creado en Firestore para UID:', user.uid);
+      
+      // Verificar que el documento se creó correctamente
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (!userDoc.exists()) {
+        throw new Error('No se pudo crear el documento en Firestore');
+      }
+      
+      console.log('✅ Usuario registrado y documento verificado en Firestore');
       return user;
     } catch (error) {
       console.error('❌ Error al registrar usuario:', error);
@@ -78,13 +88,15 @@ export function AuthProvider({ children }) {
           console.error('❌ Error al obtener documento de Firestore:', error);
           setUserData({ role: 'student', email: user.email, name: 'Usuario' });
         }
+        
+        // Solo establecer loading en false después de tener userData
+        setLoading(false);
       } else {
         console.log('⚠️ No hay usuario autenticado');
         setCurrentUser(null);
         setUserData(null);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return unsubscribe;
