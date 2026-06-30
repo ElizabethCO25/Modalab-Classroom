@@ -1,19 +1,27 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+// import { useAuth } from '../contexts/AuthContext'
 import { db, storage } from '../firebase'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { ref, getDownloadURL } from 'firebase/storage'
 
 function StudentDashboard() {
-  const { currentUser, logout, userRole } = useAuth()
+  // const { currentUser, logout, userRole } = useAuth()
   const navigate = useNavigate()
+  
+  // Estado para simular usuario y rol (para pruebas sin autenticación)
+  const [currentUser, setCurrentUser] = useState({ email: 'estudiante@demo.com' })
+  const [userRole, setUserRole] = useState('student')
+  
   const [cursos, setCursos] = useState([])
   const [tareas, setTareas] = useState([])
   const [materiales, setMateriales] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  
+  // Selector de roles para pruebas
+  const [roleSelector, setRoleSelector] = useState('student')
 
   // Estado para subir entrega
   const [archivoEntrega, setArchivoEntrega] = useState(null)
@@ -27,6 +35,13 @@ function StudentDashboard() {
     }
     cargarDatos()
   }, [userRole, navigate])
+
+  // Manejar cambio de rol desde el selector
+  useEffect(() => {
+    if (roleSelector === 'admin') {
+      navigate('/admin')
+    }
+  }, [roleSelector, navigate])
 
   async function cargarDatos() {
     try {
@@ -52,12 +67,14 @@ function StudentDashboard() {
   }
 
   async function handleLogout() {
-    try {
-      await logout()
-      navigate('/login')
-    } catch (err) {
-      setError('Error al cerrar sesión')
-    }
+    // Para pruebas sin autenticación, solo redirigimos al dashboard de estudiante
+    navigate('/student')
+    // try {
+    //   await logout()
+    //   navigate('/login')
+    // } catch (err) {
+    //   setError('Error al cerrar sesión')
+    // }
   }
 
   async function descargarMaterial(material) {
@@ -101,7 +118,20 @@ function StudentDashboard() {
     <div className="app-container">
       <header className="app-header">
         <h1>ModaLAB Escuela - Panel Alumno</h1>
-        <nav>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {/* Selector de roles para pruebas */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ color: 'white', fontSize: '0.9rem' }}>Ver como:</label>
+            <select 
+              value={roleSelector} 
+              onChange={(e) => setRoleSelector(e.target.value)}
+              style={{ padding: '0.3rem', borderRadius: '4px', border: 'none' }}
+            >
+              <option value="student">Estudiante</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          
           <span style={{ color: 'white', marginRight: '1rem' }}>
             {currentUser?.email}
           </span>
