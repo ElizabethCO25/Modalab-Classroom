@@ -1,13 +1,21 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+// import { useAuth } from '../contexts/AuthContext'
 import { db, storage } from '../firebase'
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 
 function AdminDashboard() {
-  const { currentUser, logout, userRole } = useAuth()
+  // const { currentUser, logout, userRole } = useAuth()
   const navigate = useNavigate()
+  
+  // Estado para simular usuario y rol (para pruebas sin autenticación)
+  const [currentUser, setCurrentUser] = useState({ email: 'admin@demo.com' })
+  const [userRole, setUserRole] = useState('admin')
+  
+  // Selector de roles para pruebas
+  const [roleSelector, setRoleSelector] = useState('admin')
+  
   const [activeTab, setActiveTab] = useState('cursos')
   const [cursos, setCursos] = useState([])
   const [usuarios, setUsuarios] = useState([])
@@ -28,6 +36,13 @@ function AdminDashboard() {
     }
     cargarDatos()
   }, [userRole, navigate])
+
+  // Manejar cambio de rol desde el selector
+  useEffect(() => {
+    if (roleSelector === 'student') {
+      navigate('/student')
+    }
+  }, [roleSelector, navigate])
 
   async function cargarDatos() {
     try {
@@ -97,12 +112,14 @@ function AdminDashboard() {
   }
 
   async function handleLogout() {
-    try {
-      await logout()
-      navigate('/login')
-    } catch (err) {
-      setError('Error al cerrar sesión')
-    }
+    // Para pruebas sin autenticación, solo redirigimos al dashboard de estudiante
+    navigate('/student')
+    // try {
+    //   await logout()
+    //   navigate('/login')
+    // } catch (err) {
+    //   setError('Error al cerrar sesión')
+    // }
   }
 
   if (loading) {
@@ -118,7 +135,20 @@ function AdminDashboard() {
     <div className="app-container">
       <header className="app-header">
         <h1>ModaLAB Escuela - Panel Admin</h1>
-        <nav>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {/* Selector de roles para pruebas */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ color: 'white', fontSize: '0.9rem' }}>Ver como:</label>
+            <select 
+              value={roleSelector} 
+              onChange={(e) => setRoleSelector(e.target.value)}
+              style={{ padding: '0.3rem', borderRadius: '4px', border: 'none' }}
+            >
+              <option value="admin">Administrador</option>
+              <option value="student">Estudiante</option>
+            </select>
+          </div>
+          
           <span style={{ color: 'white', marginRight: '1rem' }}>
             {currentUser?.email}
           </span>
