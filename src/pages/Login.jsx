@@ -7,6 +7,7 @@ function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [role, setRole] = useState('student')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login, register } = useAuth()
@@ -33,7 +34,7 @@ function Login() {
         await login(email, password)
       } else {
         // Registrar nuevo usuario
-        await register(email, password, name, 'student')
+        await register(email, password, name, role)
       }
       
       // La redirección ocurre automáticamente gracias al contexto y ProtectedRoute
@@ -62,19 +63,35 @@ function Login() {
           {error && <div className="alert alert-error">{error}</div>}
 
           {!isLogin && (
-            <div className="form-group">
-              <label htmlFor="name">Nombre completo</label>
-              <input
-                type="text"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Tu nombre"
-                disabled={loading}
-                required
-                autoComplete="name"
-              />
-            </div>
+            <>
+              <div className="form-group">
+                <label htmlFor="name">Nombre completo</label>
+                <input
+                  type="text"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Tu nombre"
+                  disabled={loading}
+                  required
+                  autoComplete="name"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="role">Rol</label>
+                <select
+                  id="role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  disabled={loading}
+                  required
+                >
+                  <option value="student">Estudiante</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+            </>
           )}
 
           <div className="form-group">

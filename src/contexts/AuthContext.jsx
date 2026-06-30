@@ -38,6 +38,7 @@ export function AuthProvider({ children }) {
         email: email,
         name: name,
         role: role,
+        activo: true,
         createdAt: new Date().toISOString()
       });
       
@@ -78,15 +79,26 @@ export function AuthProvider({ children }) {
           if (userDoc.exists()) {
             const data = userDoc.data();
             console.log('✅ Documento encontrado en Firestore:', data);
+            
+            // Verificar si el usuario está activo
+            if (data.activo === false) {
+              console.warn('⚠️ Usuario inactivo, cerrando sesión');
+              await signOut(auth);
+              setCurrentUser(null);
+              setUserData(null);
+              setLoading(false);
+              return;
+            }
+            
             setUserData(data);
           } else {
             console.warn('⚠️ No se encontró documento en Firestore, usando valores por defecto');
             // Fallback si no existe el documento en Firestore
-            setUserData({ role: 'student', email: user.email, name: 'Usuario' });
+            setUserData({ role: 'student', email: user.email, name: 'Usuario', activo: true });
           }
         } catch (error) {
           console.error('❌ Error al obtener documento de Firestore:', error);
-          setUserData({ role: 'student', email: user.email, name: 'Usuario' });
+          setUserData({ role: 'student', email: user.email, name: 'Usuario', activo: true });
         }
         
         // Solo establecer loading en false después de tener userData
