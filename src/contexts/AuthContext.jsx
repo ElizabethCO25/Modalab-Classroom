@@ -2,9 +2,10 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { 
   signInWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase'; // Asegúrate que esta ruta sea correcta
 
 const AuthContext = createContext();
@@ -21,6 +22,29 @@ export function AuthProvider({ children }) {
   function login(email, password) {
     console.log('🔐 Intentando login con:', email);
     return signInWithEmailAndPassword(auth, email, password);
+  }
+
+  async function register(email, password, name, role = 'student') {
+    console.log('📝 Registrando nuevo usuario:', email);
+    try {
+      // Crear usuario en Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Crear documento en Firestore con los datos del usuario
+      await setDoc(doc(db, 'users', user.uid), {
+        email: email,
+        name: name,
+        role: role,
+        createdAt: new Date().toISOString()
+      });
+      
+      console.log('✅ Usuario registrado y documento creado en Firestore');
+      return user;
+    } catch (error) {
+      console.error('❌ Error al registrar usuario:', error);
+      throw error;
+    }
   }
 
   function logout() {
@@ -69,8 +93,9 @@ export function AuthProvider({ children }) {
 const value = {
     currentUser,
     userData,
-    userRole: userData?.role, // <--- AGREGA ESTA LÍNEA EXPLÍCITA
+    userRole: userData?.role,
     login,
+    register,
     logout,
     loading
   };

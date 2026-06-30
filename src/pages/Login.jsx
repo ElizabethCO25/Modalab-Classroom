@@ -3,12 +3,14 @@ import { useAuth } from '../contexts/AuthContext'
 import './Login.css'
 
 function Login() {
+  const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
-
+  const { login, register } = useAuth()
+  
   async function handleSubmit(e) {
     e.preventDefault()
 
@@ -17,18 +19,31 @@ function Login() {
       return
     }
 
+    if (!isLogin && !name) {
+      setError('Por favor ingresa tu nombre')
+      return
+    }
+
     try {
       setError('')
       setLoading(true)
-      // Al hacer login exitoso, onAuthStateChanged se activará
-      // y ProtectedRoute se encargará de la redirección correcta
-      await login(email, password)
       
-      // NOTA: Se eliminó navigate('/') para evitar conflictos con HashRouter
+      if (isLogin) {
+        // Iniciar sesión
+        await login(email, password)
+      } else {
+        // Registrar nuevo usuario
+        await register(email, password, name, 'student')
+      }
+      
       // La redirección ocurre automáticamente gracias al contexto y ProtectedRoute
     } catch (err) {
-      setError('Error al iniciar sesión. Verifica tus credenciales.')
-      console.error('Login error:', err)
+      if (isLogin) {
+        setError('Error al iniciar sesión. Verifica tus credenciales.')
+      } else {
+        setError('Error al crear cuenta. El email ya puede estar en uso.')
+      }
+      console.error('Auth error:', err)
     } finally {
       setLoading(false)
     }
@@ -45,6 +60,22 @@ function Login() {
 
         <form onSubmit={handleSubmit} className="login-form">
           {error && <div className="alert alert-error">{error}</div>}
+
+          {!isLogin && (
+            <div className="form-group">
+              <label htmlFor="name">Nombre completo</label>
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Tu nombre"
+                disabled={loading}
+                required
+                autoComplete="name"
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="email">Correo electrónico</label>
@@ -79,12 +110,25 @@ function Login() {
             className="btn btn-primary btn-block"
             disabled={loading}
           >
-            {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+            {loading ? 'Procesando...' : (isLogin ? 'Iniciar sesión' : 'Crear cuenta')}
           </button>
         </form>
 
         <div className="login-footer">
-          <p>¿Problemas para acceder? Contacta al administrador</p>
+          <p>
+            {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
+            <button 
+              type="button" 
+              className="btn-link" 
+              onClick={() => {
+                setIsLogin(!isLogin)
+                setError('')
+              }}
+              disabled={loading}
+            >
+              {isLogin ? 'Crear una nueva' : 'Iniciar sesión'}
+            </button>
+          </p>
         </div>
       </div>
     </div>
